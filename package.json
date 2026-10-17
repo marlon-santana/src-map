@@ -1,0 +1,102 @@
+{
+  "name": "src-map",
+  "version": "0.2.1",
+  "displayName": "src-map",
+  "publisher": "local-dev",
+  "description": "Mapa de componentes do proz-frontend: cards por feature, árvore de arquivos e dependências, clique abre no VS Code.",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onStartupFinished",
+    "onCommand:srcMap.open",
+    "onCommand:srcMap.reindex",
+    "onCommand:srcMap.launch",
+    "onCommand:srcMap.attach"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "srcMap",
+          "title": "src-map",
+          "icon": "media/src-map.svg"
+        }
+      ]
+    },
+    "views": {
+      "srcMap": [
+        {
+          "id": "srcMap.dashboardView",
+          "name": "src-map"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "srcMap.dashboardView",
+        "contents": "[Abrir src-map](command:srcMap.open)\n\nMapa de componentes do proz-frontend."
+      }
+    ],
+    "commands": [
+      {
+        "command": "srcMap.open",
+        "title": "src-map: Abrir mapa"
+      },
+      {
+        "command": "srcMap.reindex",
+        "title": "src-map: Reindexar"
+      },
+      {
+        "command": "srcMap.launch",
+        "title": "src-map: Iniciar (dev server + Chrome)"
+      },
+      {
+        "command": "srcMap.attach",
+        "title": "src-map: Anexar a um Chrome aberto"
+      }
+    ],
+    "configuration": {
+      "title": "src-map",
+      "properties": {
+        "srcMap.projectRoot": {
+          "type": "string",
+          "default": "",
+          "description": "Caminho absoluto do proz-frontend. Vazio = detecta entre as pastas abertas no workspace."
+        },
+        "srcMap.appUrl": {
+          "type": "string",
+          "default": "http://localhost:4000",
+          "description": "URL do app em desenvolvimento (a porta do seu dev server)."
+        },
+        "srcMap.debugPort": {
+          "type": "number",
+          "default": 9222,
+          "description": "Porta de depuração remota do Chrome (--remote-debugging-port)."
+        },
+        "srcMap.chromePath": {
+          "type": "string",
+          "default": "",
+          "description": "Caminho do chrome.exe/msedge.exe. Vazio = detecta."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "start:extension": "node scripts/start-extension.js",
+    "index": "node scripts/index-cli.js"
+  },
+  "dependencies": {
+    "@babel/parser": "^7.24.0",
+    "@jridgewell/trace-mapping": "^0.3.31",
+    "ws": "^8.22.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/marlon-santana/src-map.git"
+  }
+}

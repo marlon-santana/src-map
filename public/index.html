@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>src-map</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="panel">
+    <header>
+      <h1>src-map</h1>
+      <span class="subtitle" id="subtitle">indexando…</span>
+      <span class="status" id="rt-status" title="Conexão com o Chrome (CDP)"><span class="dot"></span><span id="rt-status-text">Chrome desconectado</span></span>
+      <span class="status" id="status"><span class="dot"></span><span id="status-text">indexando...</span></span>
+      <input class="search" id="search" type="search" placeholder="Buscar componente, rota ou arquivo" autocomplete="off" spellcheck="false" />
+      <div class="view-tabs" id="mode-tabs">
+        <button class="view-tab active" data-mode="map">Mapa</button>
+        <button class="view-tab" data-mode="errors" id="errors-tab">Erros</button>
+      </div>
+      <div class="view-tabs" id="role-tabs"></div>
+      <label class="filter-toggle" title="Esconde a seção Compartilhados (atoms, molecules, organisms, templates)">
+        <input type="checkbox" id="hide-shared" /> esconder compartilhados
+      </label>
+      <label class="filter-toggle" title="Rola o mapa até o card da rota em que você está">
+        <input type="checkbox" id="follow-route" checked /> seguir rota atual
+      </label>
+      <label class="filter-toggle" title="Mostra, no detalhe do erro e na árvore, os arquivos do caminho de chamada (laranja)">
+        <input type="checkbox" id="show-path" checked /> mostrar caminho laranja
+      </label>
+      <label class="filter-toggle" title="Mostra o path da rota em cada card">
+        <input type="checkbox" id="show-routes" checked /> mostrar rotas
+      </label>
+      <button class="clear-btn" id="launch-btn" title="Sobe o dev server (se preciso) e abre um Chrome com perfil próprio em localhost">Iniciar</button>
+      <button class="clear-btn" id="attach-btn" title="Conecta a um Chrome já aberto com --remote-debugging-port">Anexar</button>
+      <button class="clear-btn hidden" id="disconnect-btn" title="Para de observar o Chrome">Desconectar</button>
+      <button class="clear-btn" id="clear-errors-btn" title="Limpa todos os erros capturados">Limpar erros</button>
+      <button class="clear-btn" id="reindex-btn" title="Refaz o índice a partir do disco">Reindexar</button>
+    </header>
+    <div id="trail" class="trail hidden" aria-label="Últimas rotas visitadas"></div>
+    <div id="errors-wrap" class="hidden"></div>
+    <div id="tree-wrap">
+      <div class="canvas-controls" aria-label="Controles de zoom do mapa">
+        <button id="zoom-reset" type="button" title="Redefinir zoom">100%</button>
+      </div>
+      <div id="canvas-stage"><div id="tree"></div></div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="overlay">
+    <div class="details tree-details" role="dialog" aria-modal="true" aria-labelledby="details-title">
+      <div class="details-head">
+        <h2 id="details-title">Card</h2>
+        <span class="details-kind" id="details-kind"></span>
+      </div>
+      <div class="details-path" id="details-path"></div>
+      <div class="details-actions">
+        <button id="open-root" type="button">Abrir componente</button>
+        <button id="reveal-dir" type="button">Revelar pasta</button>
+      </div>
+      <div id="details-body"></div>
+      <button class="close" id="details-close">Fechar</button>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
