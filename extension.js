@@ -251,7 +251,8 @@ async function ensureMonitor(context) {
 
 async function waitForDevServer(appUrl) {
   if (await probeUrl(appUrl)) return;
-  const terminal = vscode.window.createTerminal({ name: "src-map: npm start", cwd: lastIndex.root });
+  // BROWSER=none: o CRA não abre o navegador padrão do sistema; quem abre a aba é o Chrome do launch().
+  const terminal = vscode.window.createTerminal({ name: "src-map: npm start", cwd: lastIndex.root, env: { BROWSER: "none" } });
   terminal.show(true);
   terminal.sendText("npm start");
   for (let i = 0; i < 90; i++) {
@@ -281,6 +282,20 @@ function disconnectRuntime() {
 function clearErrors(ids) {
   if (!Array.isArray(ids)) errors = [];
   else errors = errors.filter((e) => !ids.includes(e.id));
+}
+
+function removeTrailEntry(at) {
+  trail = trail.filter((entry) => entry.at !== at);
+}
+
+// Mantém só a rota atual (última) — o resto do rastro é descartado.
+function clearTrail() {
+  trail = trail.slice(-1);
+}
+
+function resetMap() {
+  clearTrail();
+  errors = [];
 }
 
 function runtimeFailure(error) {
@@ -321,6 +336,12 @@ function openPanel(context) {
       disconnectRuntime();
     } else if (message?.type === "clearErrors") {
       clearErrors(message.ids);
+    } else if (message?.type === "removeTrail") {
+      removeTrailEntry(message.at);
+    } else if (message?.type === "clearTrail") {
+      clearTrail();
+    } else if (message?.type === "resetMap") {
+      resetMap();
     } else if (message?.type === "reindex") {
       reindex(context);
     } else if (message?.type === "open") {

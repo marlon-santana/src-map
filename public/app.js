@@ -525,9 +525,28 @@ function focusCard(id) {
   node.classList.add("flash");
 }
 
+function removeTrailEntry(at) {
+  trail = trail.filter((entry) => entry.at !== at);
+  send({ type: "removeTrail", at });
+  applyRuntimeClasses();
+}
+
+function clearTrail() {
+  trail = trail.slice(-1);
+  send({ type: "clearTrail" });
+  applyRuntimeClasses();
+}
+
 function renderTrail() {
   trailEl.textContent = "";
   trailEl.classList.toggle("hidden", !trail.length);
+  if (trail.length > 1) {
+    const clearBtn = el("button", "trail-clear", "limpar anteriores");
+    clearBtn.type = "button";
+    clearBtn.title = "Fecha todos os chips do rastro, menos o da rota atual";
+    clearBtn.addEventListener("click", clearTrail);
+    trailEl.appendChild(clearBtn);
+  }
   trail.forEach((entry, i) => {
     if (i) trailEl.appendChild(el("span", "trail-sep", "›"));
     const chip = el("div", "trail-chip");
@@ -538,6 +557,16 @@ function renderTrail() {
     chip.appendChild(el("span", "tcard", name));
     chip.title = `${clock(entry.at)} — clique para ir ao card`;
     chip.addEventListener("click", () => entry.cardIds[0] && focusCard(entry.cardIds[0]));
+    if (i !== trail.length - 1) {
+      const close = el("button", "trail-close", "×");
+      close.type = "button";
+      close.title = "Fechar este chip do rastro";
+      close.addEventListener("click", (event) => {
+        event.stopPropagation();
+        removeTrailEntry(entry.at);
+      });
+      chip.appendChild(close);
+    }
     trailEl.appendChild(chip);
   });
   trailEl.scrollLeft = trailEl.scrollWidth;
@@ -731,6 +760,16 @@ $("launch-btn").addEventListener("click", () => {
 $("attach-btn").addEventListener("click", () => {
   setRtStatus({ status: "starting", tabs: 0, message: "conectando…" });
   send({ type: "attach" });
+});
+$("reset-map-btn").addEventListener("click", () => {
+  trail = [];
+  errors = [];
+  send({ type: "resetMap" });
+  rebuildErrorIndex();
+  applyZoom(1);
+  treeWrapEl.scrollTo({ left: 0, top: 0 });
+  applyRuntimeClasses();
+  if (currentCard) openCard(currentCard.id);
 });
 $("disconnect-btn").addEventListener("click", () => send({ type: "disconnect" }));
 $("clear-errors-btn").addEventListener("click", () => {

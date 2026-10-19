@@ -38,6 +38,7 @@ body {
 }
 
 header {
+  flex: 0 0 auto;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -509,6 +510,8 @@ h1 {
 /* Barra de rotas recentes */
 
 .trail {
+  flex: 0 0 auto; /* não deixa o zoom/altura da janela espremer a barra */
+  min-height: 38px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -524,7 +527,9 @@ h1 {
   flex: 0 0 auto;
   display: flex;
   gap: 6px;
-  align-items: baseline;
+  align-items: center;
+  white-space: nowrap;
+  line-height: 1.4;
   padding: 3px 9px;
   font-size: 11px;
   color: var(--muted);
@@ -539,6 +544,35 @@ h1 {
 .trail-chip.current { color: var(--text); border-color: var(--ok); opacity: 1; }
 .trail-chip .tpath { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
 .trail-chip .tcard { color: var(--accent); }
+.trail-close {
+  padding: 0 2px;
+  margin-left: 2px;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.trail-close:hover { color: var(--text); background: rgba(255, 255, 255, 0.12); }
+
+.trail-clear {
+  flex: 0 0 auto;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  padding: 3px 9px;
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--panel-bg);
+  border: 1px solid var(--box-border);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.trail-clear:hover { color: var(--text); border-color: var(--accent); }
 .trail-sep { color: var(--line); font-size: 11px; }
 
 /* Estados dos cards */
