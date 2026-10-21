@@ -20,6 +20,7 @@ e **em qual arquivo o erro estourou**. Visual e filtros seguem o `cc-activity-ma
 | Ciclo do vermelho | Até limpar (por card ou geral) + painel dos últimos ~50 erros, só em memória. |
 | Dependências | `@babel/parser`, `ws` e `@jridgewell/trace-mapping` embutidos no `.vsix`. |
 | Visual | Tema, painel, abas, toggles, canvas com pan/zoom, cards `.node` e overlay `.details` copiados do `cc-activity-map`. |
+| Clique | Ouvinte de `click` (captura, só eventos confiáveis) injetado via CDP (`Runtime.addBinding` + `Page.addScriptToEvaluateOnNewDocument`), sem tocar no repo. Sobe pelos fibers até o primeiro com `_debugSource` em `src/` (o JSX onde o elemento foi escrito; para lib, o `<Componente />` do app). Chip na barra "cliques", card dono destacado em azul, toggle "seguir clique", últimos 10 em memória. |
 
 ## LGPD (regra fixa)
 
@@ -29,6 +30,7 @@ Só metadados. Nada vai para disco.
 - **Nunca** guardar nem exibir: corpo de request/response, query string, mensagem crua do erro (pode embutir CPF, e-mail, nome).
 - O CDP entrega ao extension host a descrição completa da exceção (com a mensagem), mas o código só lê `className`, o tipo e os frames; a mensagem nunca é copiada, guardada, logada nem enviada ao painel. Os testes verificam que credenciais digitadas e o texto do erro não aparecem nas mensagens ao webview.
 - O perfil do Chrome criado por **Iniciar** persiste a sessão do app em disco (como um navegador normal) dentro do armazenamento da extensão. Apague a pasta `chrome-profile` se não quiser isso.
+- Cliques: do navegador só saem tag/nome de componente, `arquivo:linha`, nomes dos componentes pais e `data-testid` (números ≥ 3 dígitos e UUIDs → `:id`; e-mail ou caracteres fora de `[w-:. ]` descartam o campo). Nunca texto, valor, classe, `href`, `aria-label` ou coordenadas. O payload da página é tratado como não confiável: `src/clicks.js` valida o formato e o arquivo contra `<projeto>/src`. Teste: `npm test` (sanitizador) e `npm run test:e2e-click -- <proz-frontend>` (Chrome headless, confere que nome/CPF da tela não vazam).
 - Um toggle de "mostrar mensagem" só poderia existir desligado por padrão, exibindo apenas na tela. Decisão futura do usuário.
 - O perfil dedicado do Chrome isola o `localStorage` do app (sessão, usuário) do navegador pessoal.
 - A Proz monitora o uso do Claude de forma detalhada: ferramenta de uso interno ligada ao `proz-frontend`.
@@ -38,6 +40,8 @@ Só metadados. Nada vai para disco.
 1. **Mapa estático** — feita. Índice de pastas e imports, cards por papel, árvore de arquivos, dependências, abrir no VS Code, busca (cards, rotas e arquivos), reindexação por file watcher.
 2. **Runtime de rota** — feita. CDP, card atual com pulso, rastro que esmaece (`visited`), cards com componentes montados (`mounted`), barra com as últimas 10 rotas, toggle "seguir rota atual". O spike confirmou que o `_debugSource` do React 17 existe neste CRA.
 3. **Erros** — feita. Stack com sourcemap, vermelho forte/fraco, borda no arquivo culpado, laranja no caminho, aba "Erros" (últimos 50, em memória), toggle "mostrar caminho laranja", "Limpar erros" geral e por card.
+
+4. **Cliques** — feita. Clique no sistema → chip com elemento, `arquivo:linha`, componentes pais e `data-testid`; card dono em azul; abrir o arquivo na linha.
 
 Fora de escopo: `console.error` como erro, persistência em disco, grafo com setas, outros projetos, "copiar contexto para o Claude".
 

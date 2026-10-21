@@ -16,6 +16,8 @@ const detailsBodyEl = $("details-body");
 const followRouteEl = $("follow-route");
 const showPathEl = $("show-path");
 const trailEl = $("trail");
+const clicksEl = $("clicks");
+const followClickEl = $("follow-click");
 const errorsWrapEl = $("errors-wrap");
 
 const ROLE_ALL = "Todos";
@@ -36,6 +38,7 @@ let trail = [];
 let currentIds = new Set();
 let mountedIds = new Set();
 let mountedInfo = { hasDebugSource: null, fibers: 0 };
+let clicks = []; // mais antigo primeiro; só metadados (tag, componente, arquivo:linha, data-testid), nunca texto da tela
 let errors = []; // mais recente primeiro; só metadados (sem mensagem de erro)
 let cardErr = new Map(); // cardId -> { strong: [erro], weak: [erro] }
 const MAX_WEAK_CARDS = 25;
@@ -51,7 +54,7 @@ function loadSaved() {
 }
 
 function save() {
-  const state = { role, hideShared: hideSharedEl.checked, showRoutes: showRoutesEl.checked, followRoute: followRouteEl.checked, showPath: showPathEl.checked, zoomScale, laneState };
+  const state = { role, hideShared: hideSharedEl.checked, showRoutes: showRoutesEl.checked, followRoute: followRouteEl.checked, followClick: followClickEl.checked, showPath: showPathEl.checked, zoomScale, laneState };
   try {
     if (vscodeApi) vscodeApi.setState(state);
     else localStorage.setItem("src-map:ui", JSON.stringify(state));
@@ -413,6 +416,7 @@ function openCard(id) {
   detailsBodyEl.appendChild(renderTree(card.tree, 0, card));
   detailsBodyEl.appendChild(renderDeps(card));
   markErrorFiles(cardErrors);
+  markClickedFile();
   overlayEl.classList.remove("hidden");
   detailsBodyEl.parentElement.scrollTop = 0;
 }
@@ -496,6 +500,7 @@ function applyRuntimeClasses() {
     else node.style.removeProperty("--recency");
     node.classList.toggle("error", strong);
     node.classList.toggle("error-weak", weak);
+    node.classList.toggle("clicked", clickedCardId() === id);
     const dot = node.querySelector(".dot");
     if (dot) {
       dot.classList.toggle("error", strong);
@@ -506,6 +511,7 @@ function applyRuntimeClasses() {
     else if (weak) node.appendChild(el("div", "meta weak-line", `importa ${baseName(entry.weak[0].culprit.file)} (erro)`));
   }
   renderTrail();
+  renderClicks();
   if (mode === "errors") renderErrorsView();
 }
 
@@ -570,6 +576,97 @@ function renderTrail() {
     trailEl.appendChild(chip);
   });
   trailEl.scrollLeft = trailEl.scrollWidth;
+}
+
+/* ── Cliques na tela do sistema ─────────────────────────────────────── */
+
+const lastClick = () => clicks[clicks.length - 1] || null;
+const clickedCardId = () => (lastClick() ? lastClick().cardId : null);
+
+function clickLabel(click) {
+  const base = click.host ? click.name : `${click.name} /`;
+  return `<${base}>`;
+}
+
+function clickTitle(click) {
+  const lines = [`${clock(click.at)} — ${click.file}:${click.line}`];
+  if (click.inner) lines.push("O clique caiu dentro de um filho/lib: mostrando o JSX mais próximo escrito em src/.");
+  if (click.chain.length) lines.push(`Renderizado por: ${click.chain.map((c) => c.name).join(" › ")}`);
+  if (click.route) lines.push(`Rota: ${click.route}`);
+  lines.push("Clique para abrir o arquivo na linha do elemento");
+  return lines.join("\n");
+}
+
+function removeClick(id) {
+  clicks = clicks.filter((click) => click.id !== id);
+  send({ type: "removeClick", id });
+  applyRuntimeClasses();
+}
+
+function clearClicks() {
+  clicks = [];
+  send({ type: "clearClicks" });
+  applyRuntimeClasses();
+}
+
+function renderClicks() {
+  clicksEl.textContent = "";
+  clicksEl.classList.toggle("hidden", !clicks.length);
+  if (!clicks.length) return;
+  clicksEl.appendChild(el("span", "clicks-label", "cliques"));
+  const clearBtn = el("button", "trail-clear", "limpar");
+  clearBtn.type = "button";
+  clearBtn.title = "Fecha todos os chips de cliques";
+  clearBtn.addEventListener("click", clearClicks);
+  clicksEl.appendChild(clearBtn);
+  clicks.forEach((click, i) => {
+    if (i) clicksEl.appendChild(el("span", "trail-sep", "›"));
+    const chip = el("div", "trail-chip click-chip");
+    chip.style.setProperty("--recency", String(clicks.length > 1 ? i / (clicks.length - 1) : 1));
+    if (i === clicks.length - 1) chip.classList.add("current");
+    chip.appendChild(el("span", "ctag", clickLabel(click)));
+    if (click.testId) chip.appendChild(el("span", "ctest", `#${click.testId}`));
+    chip.appendChild(el("span", "tpath", `${baseName(dirName(click.file)) ? baseName(dirName(click.file)) + "/" : ""}${baseName(click.file)}:${click.line}`));
+    const owner = click.chain[0];
+    if (owner) chip.appendChild(el("span", "cowner", `em ${owner.name}`));
+    if (click.cardId && cardsById.has(click.cardId)) {
+      const badge = el("span", "tcard", cardName(click.cardId));
+      badge.title = "Ir ao card";
+      badge.addEventListener("click", (event) => {
+        event.stopPropagation();
+        focusCard(click.cardId);
+      });
+      chip.appendChild(badge);
+    }
+    chip.title = clickTitle(click);
+    chip.addEventListener("click", () => send({ type: "open", file: click.file, line: click.line }));
+    const close = el("button", "trail-close", "×");
+    close.type = "button";
+    close.title = "Fechar este chip";
+    close.addEventListener("click", (event) => {
+      event.stopPropagation();
+      removeClick(click.id);
+    });
+    chip.appendChild(close);
+    clicksEl.appendChild(chip);
+  });
+  clicksEl.scrollLeft = clicksEl.scrollWidth;
+}
+
+// Marca, na árvore/dependências do card aberto, o arquivo do último elemento clicado.
+function markClickedFile() {
+  const click = lastClick();
+  for (const row of detailsBodyEl.querySelectorAll(".ftree [data-file], .dep-row[data-file]")) {
+    row.classList.toggle("clicked-file", Boolean(click) && row.dataset.file === click.file);
+  }
+}
+
+function addClick(click) {
+  clicks.push(click);
+  if (clicks.length > 10) clicks.shift();
+  applyRuntimeClasses();
+  if (currentCard) markClickedFile();
+  if (followClickEl.checked && click.cardId) focusCard(click.cardId);
 }
 
 function renderErrorsView() {
@@ -749,6 +846,7 @@ $("mode-tabs").addEventListener("click", (event) => {
   if (tab) setMode(tab.dataset.mode);
 });
 followRouteEl.addEventListener("change", save);
+followClickEl.addEventListener("change", save);
 showPathEl.addEventListener("change", () => {
   save();
   if (currentCard) openCard(currentCard.id);
@@ -764,6 +862,7 @@ $("attach-btn").addEventListener("click", () => {
 $("reset-map-btn").addEventListener("click", () => {
   trail = [];
   errors = [];
+  clicks = [];
   send({ type: "resetMap" });
   rebuildErrorIndex();
   applyZoom(1);
@@ -814,6 +913,8 @@ window.addEventListener("message", (event) => {
     $("rt-status").title =
       mountedInfo.hasDebugSource === false ? "React sem _debugSource: só a rota está sendo mapeada" : `${mountedIds.size} cards com componentes montados`;
     applyRuntimeClasses();
+  } else if (message.type === "click") {
+    addClick(message.click);
   } else if (message.type === "runtimeError") {
     addError(message.error);
   } else if (message.type === "runtimeSnapshot") {
@@ -821,6 +922,7 @@ window.addEventListener("message", (event) => {
     currentIds = new Set(message.current || []);
     mountedIds = new Set(message.mounted || []);
     errors = message.errors || [];
+    clicks = message.clicks || [];
     rebuildErrorIndex();
     setRtStatus(message.status || rt);
   }
@@ -831,6 +933,7 @@ if (saved.role) role = saved.role;
 if (typeof saved.hideShared === "boolean") hideSharedEl.checked = saved.hideShared;
 if (typeof saved.showRoutes === "boolean") showRoutesEl.checked = saved.showRoutes;
 if (typeof saved.followRoute === "boolean") followRouteEl.checked = saved.followRoute;
+if (typeof saved.followClick === "boolean") followClickEl.checked = saved.followClick;
 if (typeof saved.showPath === "boolean") showPathEl.checked = saved.showPath;
 if (typeof saved.zoomScale === "number") zoomScale = Math.max(0.4, Math.min(2, saved.zoomScale));
 Object.assign(laneState, saved.laneState || {});

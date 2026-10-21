@@ -6,3 +6,4 @@ coverage/**
 *.vsix
 scripts/**
 SPEC.md
+test/**

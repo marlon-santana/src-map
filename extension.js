@@ -20,6 +20,7 @@ let watchTimer = null;
 // Runtime (fases 2 e 3): tudo em memória. Nada vai para disco.
 const MAX_ERRORS = 50;
 const MAX_TRAIL = 10;
+const MAX_CLICKS = 10;
 let monitor = null;
 let monitorContext = null;
 let matcher = null;
@@ -28,6 +29,8 @@ let rtStatus = { status: "disconnected", tabs: 0, message: "" };
 let trail = [];
 let errors = [];
 let errorSeq = 0;
+let clicks = [];
+let clickSeq = 0;
 const currentByTab = new Map(); // tabId -> { pattern, cardIds }
 const mountedByTab = new Map(); // tabId -> Set(cardId)
 let mountedInfo = { hasDebugSource: null, fibers: 0 };
@@ -171,6 +174,7 @@ function runtimeSnapshot() {
     mounted: unionOf(mountedByTab),
     mountedInfo,
     errors,
+    clicks,
   };
 }
 
@@ -222,6 +226,27 @@ async function ensureMonitor(context) {
     mountedByTab.set(tabId, ids);
     mountedInfo = { hasDebugSource, fibers };
     post({ type: "mounted", mounted: unionOf(mountedByTab), mountedInfo });
+  });
+
+  monitor.on("click", (raw) => {
+    const toCard = (file) => (file ? cardIdOfFile(file) : null);
+    const click = {
+      id: ++clickSeq,
+      at: raw.at,
+      name: raw.name,
+      host: raw.host,
+      inner: raw.inner,
+      tag: raw.tag,
+      testId: raw.testId,
+      file: raw.file,
+      line: raw.line,
+      cardId: toCard(raw.file),
+      route: currentByTab.get(raw.tabId)?.pattern ?? null,
+      chain: raw.chain.map((item) => ({ ...item, cardId: toCard(item.file) })),
+    };
+    clicks.push(click);
+    if (clicks.length > MAX_CLICKS) clicks.shift();
+    post({ type: "click", click });
   });
 
   monitor.on("error-captured", (raw) => {
@@ -293,9 +318,14 @@ function clearTrail() {
   trail = trail.slice(-1);
 }
 
+function removeClick(id) {
+  clicks = clicks.filter((click) => click.id !== id);
+}
+
 function resetMap() {
   clearTrail();
   errors = [];
+  clicks = [];
 }
 
 function runtimeFailure(error) {
@@ -340,6 +370,10 @@ function openPanel(context) {
       removeTrailEntry(message.at);
     } else if (message?.type === "clearTrail") {
       clearTrail();
+    } else if (message?.type === "removeClick") {
+      removeClick(message.id);
+    } else if (message?.type === "clearClicks") {
+      clicks = [];
     } else if (message?.type === "resetMap") {
       resetMap();
     } else if (message?.type === "reindex") {

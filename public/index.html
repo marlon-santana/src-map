@@ -24,6 +24,9 @@
       <label class="filter-toggle" title="Rola o mapa até o card da rota em que você está">
         <input type="checkbox" id="follow-route" checked /> seguir rota atual
       </label>
+      <label class="filter-toggle" title="Rola o mapa até o card do último elemento clicado na tela do sistema">
+        <input type="checkbox" id="follow-click" checked /> seguir clique
+      </label>
       <label class="filter-toggle" title="Mostra, no detalhe do erro e na árvore, os arquivos do caminho de chamada (laranja)">
         <input type="checkbox" id="show-path" checked /> mostrar caminho laranja
       </label>
@@ -38,6 +41,7 @@
       <button class="clear-btn" id="reindex-btn" title="Refaz o índice a partir do disco">Reindexar</button>
     </header>
     <div id="trail" class="trail hidden" aria-label="Últimas rotas visitadas"></div>
+    <div id="clicks" class="clicks hidden" aria-label="Últimos elementos clicados no sistema"></div>
     <div id="errors-wrap" class="hidden"></div>
     <div id="tree-wrap">
       <div class="canvas-controls" aria-label="Controles de zoom do mapa">

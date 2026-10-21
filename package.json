@@ -1,6 +1,6 @@
 {
   "name": "src-map",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "displayName": "src-map",
   "publisher": "local-dev",
   "description": "Mapa de componentes do proz-frontend: cards por feature, árvore de arquivos e dependências, clique abre no VS Code.",
@@ -88,7 +88,9 @@
   },
   "scripts": {
     "start:extension": "node scripts/start-extension.js",
-    "index": "node scripts/index-cli.js"
+    "index": "node scripts/index-cli.js",
+    "test": "node --test test/",
+    "test:e2e-click": "node scripts/e2e-click.js"
   },
   "dependencies": {
     "@babel/parser": "^7.24.0",

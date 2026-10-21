@@ -6,6 +6,7 @@ const http = require("http");
 const { spawn } = require("child_process");
 const { connect } = require("./cdp");
 const { createSourceMapper } = require("./sourcemaps");
+const { CLICK_BINDING, CLICK_HOOK, sanitizeClick } = require("./clicks");
 const { flattenStack, resolveFrames, pickCulprit, looksLikeRenderError, sanitizeEndpoint, toSrcRel } = require("./stack");
 
 const POLL_MS = 1500;
@@ -221,6 +222,9 @@ class RuntimeMonitor extends EventEmitter {
       if (info && !canceled) this._enqueue(() => this._handleHttp(tab, info, 0));
     });
     client.on("Network.loadingFinished", ({ requestId }) => tab.requests.delete(requestId));
+    client.on("Runtime.bindingCalled", ({ name, payload }) => {
+      if (name === CLICK_BINDING) this._handleClick(tab, payload);
+    });
 
     await client.send("Runtime.enable");
     await client.send("Network.enable");
@@ -228,6 +232,8 @@ class RuntimeMonitor extends EventEmitter {
     await client.send("Debugger.enable");
     await client.send("Debugger.setSkipAllPauses", { skip: true });
     await client.send("Debugger.setAsyncCallStackDepth", { maxDepth: 32 });
+
+    await this._installClickHook(client);
 
     this.tabs.set(tab.id, tab);
     tab.filesTimer = setInterval(() => this._pollFiles(tab), FILES_MS);
@@ -238,6 +244,23 @@ class RuntimeMonitor extends EventEmitter {
       this._emitRoute(tab, target.url);
     }
     this._setStatus("connected");
+  }
+
+  // Escuta de cliques injetada só no navegador (nada no repo). Falhar aqui não derruba rota/erros.
+  async _installClickHook(client) {
+    try {
+      await client.send("Runtime.addBinding", { name: CLICK_BINDING });
+      await client.send("Page.addScriptToEvaluateOnNewDocument", { source: CLICK_HOOK });
+      await client.send("Runtime.evaluate", { expression: CLICK_HOOK }); // aba já carregada
+    } catch (error) {
+      console.error(`[src-map] hook de clique indisponível: ${error.message}`);
+    }
+  }
+
+  _handleClick(tab, payload) {
+    if (typeof payload !== "string" || payload.length > 20000) return;
+    const click = sanitizeClick(payload, this.getSrcDir());
+    if (click) this.emit("click", { tabId: tab.id, at: Date.now(), ...click });
   }
 
   _detach(tab) {

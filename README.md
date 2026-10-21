@@ -136,13 +136,15 @@ Para atualizar, baixe o `.vsix` mais novo e repita o passo 2.
 - **Iniciar** — se `localhost:4000` não responde, abre um terminal com `npm start`; em seguida abre um Chrome com perfil próprio (a sessão de login fica salva nele) já no app.
 - **Anexar** — conecta a um Chrome já aberto com `--remote-debugging-port=9222`. Em abas já carregadas a rota e os erros funcionam; recarregue a aba só se os componentes montados não aparecerem.
 - **Desconectar** — para de observar. O Chrome continua aberto.
-- Filtros e controles do cabeçalho: abas **Mapa / Erros**, papéis, "esconder compartilhados", **seguir rota atual**, **mostrar caminho laranja**, "mostrar rotas", **Limpar erros**, Reindexar. Scroll dá zoom e arrastar move o canvas.
+- **Cliques na tela do sistema** — com o Chrome conectado, clicar em qualquer elemento do app faz aparecer, na barra **cliques** (abaixo do rastro de rotas), um chip com o elemento (`<button>`, `<Select />`), o `data-testid`, o `arquivo:linha` do JSX onde ele foi escrito e o componente que o renderiza. O card dono do arquivo ganha destaque azul e o mapa rola até ele (**seguir clique**). Clicar no chip abre o arquivo na linha do elemento; o `×` fecha o chip. Se o clique cair dentro de um filho ou de uma lib (ex.: o `<button>` interno de um componente do MUI), o chip aponta o `<Componente />` mais próximo escrito em `src/`. Precisa do React em modo dev (`_debugSource`), como os componentes montados.
+- Filtros e controles do cabeçalho: abas **Mapa / Erros**, papéis, "esconder compartilhados", **seguir rota atual**, **seguir clique**, **mostrar caminho laranja**, "mostrar rotas", **Limpar erros**, Reindexar. Scroll dá zoom e arrastar move o canvas.
 
 ## Privacidade e LGPD
 
 - Tudo roda **localmente** na sua máquina; nada é enviado a um servidor.
 - Só metadados, em memória. O código **nunca** guarda nem mostra: mensagem de erro, corpo de request/response, query string. IDs, CPFs e e-mails em paths viram `:id`. O Chrome entrega a descrição do erro ao processo da extensão, mas o código lê só o nome da classe (`TypeError`) e os frames.
 - O perfil do Chrome criado por **Iniciar** guarda a sessão do app no disco da extensão (como um navegador normal). Apague a pasta `chrome-profile` no armazenamento global da extensão se não quiser isso.
+- Cliques: a extensão injeta, só no navegador, um ouvinte de clique (nada é escrito no repo). Dele saem apenas nome da tag/componente, `arquivo:linha`, nomes dos componentes pais e o `data-testid` (com números longos e UUIDs trocados por `:id`). **Nunca** saem o texto da tela, valores de campos, classes, `href`, `aria-label` nem a posição do mouse. O chip mostra só isso, em memória (últimos 10).
 - **Não compartilhe prints** do mapa ou do app sem conferir se há dados pessoais ou credenciais visíveis.
 - Use apenas em máquinas autorizadas e em conformidade com a política de uso de IA e de dados da sua empresa.
 
